@@ -71,6 +71,9 @@ label.check { flex-direction: row; align-items: center; font-weight: 500; } labe
 .mini-grid .b { background: rgba(255,255,255,.4); } .mini-grid .x { background: transparent; }
 .mini-grid .a:nth-child(7n) { background: #4ade80; }
 .auth-card { align-self: center; justify-self: center; width: min(420px, 92%); background: #fff; padding: 2rem; border-radius: 18px; box-shadow: var(--shadow); margin: 2rem 0; }
+.google-login { width: 100%; display: flex; flex-direction: column; align-items: center; margin: .25rem 0 .9rem; }
+.google-login-divider { width: 100%; display: flex; align-items: center; gap: .75rem; color: var(--muted); font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin: .15rem 0 .75rem; }
+.google-login-divider::before, .google-login-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .role-badge { display: inline-block; background: var(--primary-l); color: var(--primary); padding: .3rem .7rem; border-radius: 99px; font-size: .8rem; font-weight: 700; margin-bottom: .8rem; }
 .pw { position: relative; } .pw .link { position: absolute; right: .8rem; top: 50%; transform: translateY(-50%); font-size: .82rem; }
 .auth-links { display: flex; justify-content: space-between; margin-top: 1rem; font-size: .88rem; flex-wrap: wrap; gap: .4rem; }

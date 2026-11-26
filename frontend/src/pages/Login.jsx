@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
+import GoogleLoginButton from "../components/GoogleLoginButton";
 
 export default function Login({ admin }) {
   const { user, login } = useAuth();
@@ -55,7 +56,11 @@ export default function Login({ admin }) {
             <button type="button" className="link" onClick={() => setShow(!show)}>{show ? 'Hide' : 'Show'}</button>
           </div>
         </label>
-
+          {!admin && (
+            <div style={{ marginTop: 16, display: "flex", justifyContent: "center" }}>
+              <GoogleLoginButton />
+            </div>
+          )}
         <button className="btn primary block" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
 
         <div className="auth-links">
