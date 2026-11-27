@@ -1,0 +1,17 @@
+package com.smartparking.service;
+import com.smartparking.dto.Dtos.*; import com.smartparking.exception.ApiException; import com.smartparking.model.*; import com.smartparking.repository.*; import org.springframework.http.HttpStatus; import org.springframework.stereotype.Service; import org.springframework.transaction.annotation.Transactional; import java.math.BigDecimal; import java.time.LocalDateTime; import java.util.List;
+@Service public class SubscriptionService {
+ private final SubscriptionPlanRepository plans; private final UserSubscriptionRepository subscriptions;
+ public SubscriptionService(SubscriptionPlanRepository plans,UserSubscriptionRepository subscriptions){this.plans=plans;this.subscriptions=subscriptions;}
+ @Transactional public void seed(){ seed("GOLD","Gold","Weekly",7,"499.00"); seed("PLATINUM","Platinum","Monthly",30,"1499.00"); seed("DIAMOND","Diamond","Yearly",365,"9999.00"); }
+ private void seed(String code,String name,String interval,int days,String amount){ if(!plans.existsById(code)){SubscriptionPlan p=new SubscriptionPlan();p.setCode(code);p.setName(name);p.setIntervalLabel(interval);p.setDays(days);p.setPrice(new BigDecimal(amount));plans.save(p);} }
+ public List<TierDto> tiers(){return plans.findAll().stream().sorted(java.util.Comparator.comparingInt(p -> switch(p.getCode()){case "GOLD" -> 1; case "PLATINUM" -> 2; default -> 3;})).map(this::dto).toList();}
+ @Transactional public TierDto price(String code,BigDecimal amount){SubscriptionPlan p=plans.findById(code.toUpperCase()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Plan not found"));if(amount==null||amount.signum()<0)throw new ApiException(HttpStatus.BAD_REQUEST,"Price must be zero or greater");p.setPrice(amount.setScale(2,java.math.RoundingMode.HALF_UP));return dto(p);}
+ @Transactional public SubscriptionDto purchase(User user,String code){SubscriptionPlan p=plans.findById(code.toUpperCase()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Plan not found"));LocalDateTime now=LocalDateTime.now();UserSubscription sub=new UserSubscription();sub.setUser(user);sub.setPlan(p);sub.setPricePaid(p.getPrice());sub.setStartsAt(now);sub.setEndsAt(switch(p.getIntervalLabel()){case "Weekly" -> now.plusWeeks(1); case "Monthly" -> now.plusMonths(1); case "Yearly" -> now.plusYears(1); default -> now.plusDays(p.getDays());});sub.setStatus("ACTIVE");return dto(subscriptions.save(sub));}
+ public SubscriptionDto current(User user){LocalDateTime now=LocalDateTime.now();return subscriptions.findFirstByUserIdAndStatusAndStartsAtLessThanEqualAndEndsAtGreaterThanEqualOrderByEndsAtDesc(user.getId(),"ACTIVE",now,now).map(this::dto).orElse(null);}
+ public BigDecimal totalRevenue(){return subscriptions.totalRevenue();}
+ public List<SubscriptionDto> history(User user){return subscriptions.findByUserIdOrderByEndsAtDesc(user.getId()).stream().map(this::dto).toList();}
+ public boolean covers(User user,LocalDateTime start,LocalDateTime end){return subscriptions.findFirstByUserIdAndStatusAndStartsAtLessThanEqualAndEndsAtGreaterThanEqualOrderByEndsAtDesc(user.getId(),"ACTIVE",start,end).isPresent();}
+ private TierDto dto(SubscriptionPlan p){return new TierDto(p.getCode(),p.getName(),p.getIntervalLabel(),p.getDays(),p.getPrice());}
+ private SubscriptionDto dto(UserSubscription s){return new SubscriptionDto(s.getId(),s.getPlan().getCode(),s.getPlan().getName(),s.getStartsAt(),s.getEndsAt(),s.getStatus(),s.getPricePaid());}
+}

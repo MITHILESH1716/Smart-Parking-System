@@ -1,0 +1,9 @@
+import { useEffect, useState } from 'react';
+import { api, money, fmtDT } from '../../api.js';
+export default function Plans(){
+ const [plans,setPlans]=useState([]),[current,setCurrent]=useState(null),[err,setErr]=useState(''),[busy,setBusy]=useState(''),[msg,setMsg]=useState('');
+ const load=()=>Promise.all([api('/subscriptions/plans'),api('/subscriptions/current')]).then(([p,c])=>{setPlans(p);setCurrent(c)}).catch(e=>setErr(e.message));
+ useEffect(()=>{load()},[]);
+ const buy=async p=>{if(!confirm(`Activate ${p.name} for ${money(p.price)} using demo payment?`))return;setBusy(p.code);setErr('');setMsg('');try{await api('/subscriptions/purchase',{method:'POST',body:{tier:p.code}});setMsg(`${p.name} activated. You can reserve separate available spots until it expires.`);await load()}catch(e){setErr(e.message)}finally{setBusy('')}};
+ return <><div className="page-head"><div><h1>Parking plans</h1><p className="muted">A plan covers unlimited individual parking bookings during its active period. You still choose a lot, floor, spot, and time for every visit.</p></div></div>{err&&<div className="alert error">{err}</div>}{msg&&<div className="alert ok">{msg}</div>}{current&&<div className="card active-plan"><b>Active plan: {current.tierName}</b><span> · Ends {fmtDT(current.endsAt)}</span></div>}<div className="cards plan-cards">{plans.map(p=><article className="card plan-card" key={p.code}><div className="chip">{p.interval}</div><h2>{p.name}</h2><div className="price">{money(p.price)}</div><p className="muted">Billed for one {p.interval.toLowerCase()} period</p><p>Unlimited separate spot reservations while active. Each booking remains subject to live availability.</p><button className="btn primary block" disabled={!!busy} onClick={()=>buy(p)}>{busy===p.code?'Processing demo payment...':'Choose '+p.name}</button></article>)}</div></>;
+}
