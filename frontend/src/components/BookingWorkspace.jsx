@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   api, dateStr, fmtDT, hourLabel, isoLocal, money, ICON, TYPE_ICON, TYPE_NAME, TYPE_ORDER,
+  recognizePlate,
 } from '../api.js';
 import SlotGrid, { Legend } from './SlotGrid.jsx';
 import PaymentModal from './PaymentModal.jsx';
@@ -19,6 +20,9 @@ export default function BookingWorkspace({ admin }) {
   const [data, setData] = useState(null);
   const [selected, setSelected] = useState(null);
   const [vehicle, setVehicle] = useState('');
+  const [vehicleImage, setVehicleImage] = useState(null);
+  const [plateBusy, setPlateBusy] = useState(false);
+  const [plateMessage, setPlateMessage] = useState('');
   const [floor, setFloor] = useState(1);
   const [prefType, setPrefType] = useState('ANY');   // the section being booked
   const [accOk, setAccOk] = useState(false);              // accessible-zone confirmation
@@ -106,6 +110,24 @@ export default function BookingWorkspace({ admin }) {
   const onPaid = async () => {
     await api(`/bookings/${pay.id}/pay`, { method: 'POST' });
     nav('/my-bookings');
+  };
+
+  const readPlate = async () => {
+    if (!vehicleImage) return;
+    setPlateBusy(true);
+    setPlateMessage('Recognizing plate on this computer...');
+    setErr('');
+    try {
+      const result = await recognizePlate(vehicleImage);
+      setVehicle(result.plateNumber);
+      const confidence = Math.round((result.confidence || 0) * 100);
+      setPlateMessage(`Read ${result.plateNumber}${confidence ? ` (${confidence}% confidence)` : ''}. Please verify it before booking.`);
+    } catch (ex) {
+      setPlateMessage('');
+      setErr(ex.message);
+    } finally {
+      setPlateBusy(false);
+    }
   };
 
   const sizeText = !current ? '-'
@@ -203,6 +225,17 @@ export default function BookingWorkspace({ admin }) {
             <input required value={vehicle} placeholder="KA01AB1234"
                    onChange={(e) => setVehicle(e.target.value)} />
           </label>
+          <div className="plate-recognition">
+            <label>Or upload a clear photo of the vehicle
+              <input type="file" accept="image/jpeg,image/png,image/webp"
+                     onChange={(e) => { setVehicleImage(e.target.files?.[0] || null); setPlateMessage(''); }} />
+            </label>
+            <button className="btn ghost sm" type="button" disabled={!vehicleImage || plateBusy} onClick={readPlate}>
+              {plateBusy ? 'Reading plate...' : 'Read number plate'}
+            </button>
+            <p className="muted sm">The local recognition service processes the image on this computer. Check the number before booking.</p>
+            {plateMessage && <p className="muted sm" role="status">{plateMessage}</p>}
+          </div>
           {['DISABLED','ELDERLY'].includes(current?.type) && (
             <label className="check">
               <input type="checkbox" checked={accOk} onChange={(e) => setAccOk(e.target.checked)} />
