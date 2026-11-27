@@ -24,6 +24,21 @@ export async function api(path, { method = 'GET', body, auth = true } = {}) {
   return data;
 }
 
+// Sends the selected image to the local ALPR service. The browser does not
+// forward it to the SmartParking backend or an external recognition API.
+export async function recognizePlate(image) {
+  const form = new FormData();
+  form.append('image', image);
+  const response = await fetch('/alpr/recognize', { method: 'POST', body: form });
+  const text = await response.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { /* non-JSON response */ }
+  if (!response.ok) {
+    throw new Error(data?.detail || data?.message || `Plate recognition failed (${response.status})`);
+  }
+  return data;
+}
+
 // ---------- helpers ----------
 export const money = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const pad = (n) => String(n).padStart(2, '0');

@@ -3,3 +3,6 @@ dist
 target
 .env
 application.properties
+__pycache__/
+.venv/
+.pytest_cache/
